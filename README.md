@@ -7,7 +7,7 @@ Ministry of Health of Brazil have been [publishing](https://covid.saude.gov.br/)
 It's important to point out that we have some differences in the data: for example, in 24/04/2020, by administrative records there were 4,370 deaths by COVID-19 or under suspects in Brazil; instead, data provided by the Ministry of Health
 shows 3,670 deaths.
 
-![]("https://github.com/estevaovilela/covid-19/blob/master/data/figures/evolution_covid19.gif")
+![](data/figures/evolution_covid19.gif)
 
 ## Project Organization
 
