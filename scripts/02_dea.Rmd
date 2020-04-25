@@ -33,18 +33,11 @@ Apparently we need to have all the data:
 https://purrr.tidyverse.org/reference/cross.html
 
 ```{r}
-df_pyramid <- df %>% 
-  arrange(state, age_group, gender, date) %>% 
-  group_by(state, age_group, gender) %>% 
-  mutate(number_deaths_cum = cumsum(number_deaths))
-```
-
-```{r}
 df_pyramid_all <- purrr::cross_df(.l = list(
-  "state" = df_pyramid %>% ungroup() %>% select(state) %>% unique() %>% pull(),
-  "date" = df_pyramid %>% ungroup() %>% select(date) %>% unique() %>% pull(),
-  "gender" = df_pyramid %>% ungroup() %>% select(gender) %>% unique() %>% pull(),
-  "age_group" = df_pyramid %>% ungroup() %>% select(age_group) %>% unique() %>% pull()))
+  "state" = df %>% select(state) %>% unique() %>% pull(),
+  "date" = df %>% select(date) %>% unique() %>% pull(),
+  "gender" = df %>% select(gender) %>% unique() %>% pull(),
+  "age_group" = df %>% select(age_group) %>% unique() %>% pull()))
 
 df_pyramid_all <- df_pyramid_all %>% 
   mutate(date = lubridate::as_date(date))
@@ -52,14 +45,27 @@ df_pyramid_all <- df_pyramid_all %>%
 
 ```{r}
 df_pyramid_all <- df_pyramid_all %>% 
-  left_join(df_pyramid %>% select(-number_deaths), 
-            by = c("state", "date", "age_group", "gender")) %>% 
-  mutate(number_deaths_cum = ifelse(is.na(number_deaths_cum), 0, number_deaths_cum))
+  left_join(df, by = c("state", "date", "age_group", "gender")) %>% 
+  mutate(number_deaths = ifelse(is.na(number_deaths), 0, number_deaths))
 ```
 
 ```{r}
-df_pyramid_all %>% 
+age_group_levels <- df_pyramid_all %>% pull(age_group) %>% unique() %>% sort()
+age_group_levels[1] <- "< 9"
+age_group_levels[10] <- age_group_levels[11]
+age_group_levels[11] <- "> 100"
+
+df_pyramid_all_cumulative_deaths <- df_pyramid_all %>% 
+  mutate(age_group = factor(age_group, levels = age_group_levels)) %>% 
+  arrange(state, age_group, gender, date) %>% 
+  group_by(state, age_group, gender) %>% 
+  mutate(number_deaths_cum = cumsum(number_deaths))
+```
+
+```{r}
+g1 <- df_pyramid_all_cumulative_deaths %>% 
   mutate(number_deaths_cum = ifelse(gender == "F", -number_deaths_cum, number_deaths_cum)) %>% 
+  filter(date <= dmy("24/04/2020") & date <= dmy("21/04/2020")) %>% 
   ggplot(aes(x = age_group, y = number_deaths_cum)) +
   geom_col(aes(fill = gender)) +
   coord_flip() +
@@ -68,91 +74,13 @@ df_pyramid_all %>%
   labs(title = 'Date: {frame_time}', x = 'Age group', y = '# of Deaths') +
   transition_time(date)
   #ease_aes('linear')
+
+animate(g1, renderer = gifski_renderer())
 ```
 
+# Graph 2 - Daily evolution in a map
 
 ```{r}
-df %>% 
-  group_by(state, age_group, gender) %>% 
-  summarise(total_deaths = sum(number_deaths)) %>% 
-  mutate(total_deaths = log10(total_deaths)) %>% 
-  mutate(total_deaths = ifelse(gender == "F", -total_deaths, total_deaths)) %>% 
-  ggplot(aes(x = age_group, y = total_deaths)) +
-  geom_col(aes(fill = gender)) +
-  coord_flip() +
-  # não deu certo
-  #scale_y_continuous(labels = c(100,10,0,10,100)) +
-  facet_wrap(~state) +
 
-
-df_graph %>% 
-  ggplot(aes())
-```
-
-```{r}
-df_graph %>% 
-  mutate(number_deaths_cum = ifelse(gender == "F", -number_deaths_cum, number_deaths_cum)) %>% 
-  ggplot(aes(x = age_group, y = number_deaths_cum)) +
-  geom_col(aes(fill = gender)) +
-  coord_flip() +
-  facet_wrap(~state) +
-  # Here comes the gganimate specific bits
-  labs(title = 'Data: {frame_time}', x = 'Grupo etário', y = 'Número de mortes') +
-  transition_time(date)
-  #ease_aes('linear')
-```
-
-# Graph 2
-
-Using the package 'ggalluvial'
-
-```{r}
-graph_alluvial <- df %>% 
-  group_by(state, age_group, gender) %>% 
-  summarise(total_deaths = sum(number_deaths))
-```
-
-```{r}
-is_alluvia_form(graph_alluvial, axes = 1:3, silent = TRUE)
-```
-
-
-```{r}
-graph_alluvial %>% 
-  ggplot(aes(y = total_deaths, axis1 = age_group, axis2 = gender)) +
-  geom_alluvium(aes(fill = gender), width = 0, knot.pos = 0, reverse = FALSE) +
-  geom_stratum(width = 1/8, reverse = FALSE) +
-  geom_text(stat = "stratum", infer.label = TRUE, reverse = FALSE) +
-  ggtitle("Deaths by Covid-19")
-
-ggplot(as.data.frame(Titanic),
-       aes(y = Freq,
-           axis1 = Survived, axis2 = Sex, axis3 = Class)) +
-  geom_alluvium(aes(fill = Class),
-                width = 0, knot.pos = 0, reverse = FALSE) +
-  guides(fill = FALSE) +
-  geom_stratum(width = 1/8, reverse = FALSE) +
-  geom_text(stat = "stratum", infer.label = TRUE, reverse = FALSE) +
-  scale_x_continuous(breaks = 1:3, labels = c("Survived", "Sex", "Class")) +
-  ggtitle("Titanic survival by class and sex")
-```
-
-
-https://github.com/corybrunson/ggalluvial
-
-com sexo, idade para o brasil todo
-
-# Graph 3
-
-```{r}
-graph_barplot <- df %>% 
-  group_by(age_group, gender) %>% 
-  summarise(total_deaths = sum(number_deaths))
-```
-
-```{r}
-graph_barplot %>% 
-  ggplot(aes(x = age_group, y = total_deaths)) +
-  geom_col(aes(fill = gender), position = "dodge")
 ```
 
