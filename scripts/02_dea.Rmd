@@ -14,11 +14,11 @@ library(ggalluvial)
 ```
 
 ```{r reading}
-current_day <- Sys.Date()
+day <- "24_04_2020"
 
 df <- fread(paste0("./data/treated/deaths_br_", 
-                             paste(rev(str_split(current_day, pattern = "-")[[1]]), collapse = "_"), 
-                             "_by_gender_age_date_state.csv"))
+                   day,
+                   "_by_gender_age_date_state.csv"))
 ```
 
 ```{r}
@@ -27,20 +27,49 @@ df <- df %>%
   mutate(date = ymd(date))
 ```
 
-# Graph 1
-
-Daily evolution in pyramid chart
+# Graph 1 - Daily evolution in pyramid chart
 
 Apparently we need to have all the data: 
 https://purrr.tidyverse.org/reference/cross.html
-https://tidyr.tidyverse.org/reference/expand.html
 
 ```{r}
-df_graph <- df %>% 
+df_pyramid <- df %>% 
   arrange(state, age_group, gender, date) %>% 
   group_by(state, age_group, gender) %>% 
   mutate(number_deaths_cum = cumsum(number_deaths))
 ```
+
+```{r}
+df_pyramid_all <- purrr::cross_df(.l = list(
+  "state" = df_pyramid %>% ungroup() %>% select(state) %>% unique() %>% pull(),
+  "date" = df_pyramid %>% ungroup() %>% select(date) %>% unique() %>% pull(),
+  "gender" = df_pyramid %>% ungroup() %>% select(gender) %>% unique() %>% pull(),
+  "age_group" = df_pyramid %>% ungroup() %>% select(age_group) %>% unique() %>% pull()))
+
+df_pyramid_all <- df_pyramid_all %>% 
+  mutate(date = lubridate::as_date(date))
+```
+
+```{r}
+df_pyramid_all <- df_pyramid_all %>% 
+  left_join(df_pyramid %>% select(-number_deaths), 
+            by = c("state", "date", "age_group", "gender")) %>% 
+  mutate(number_deaths_cum = ifelse(is.na(number_deaths_cum), 0, number_deaths_cum))
+```
+
+```{r}
+df_pyramid_all %>% 
+  mutate(number_deaths_cum = ifelse(gender == "F", -number_deaths_cum, number_deaths_cum)) %>% 
+  ggplot(aes(x = age_group, y = number_deaths_cum)) +
+  geom_col(aes(fill = gender)) +
+  coord_flip() +
+  facet_wrap(~state) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Date: {frame_time}', x = 'Age group', y = '# of Deaths') +
+  transition_time(date)
+  #ease_aes('linear')
+```
+
 
 ```{r}
 df %>% 
