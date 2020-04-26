@@ -29,7 +29,7 @@ df_states_region <- tibble(code = br_states_names$code,
 ```
 
 ```{r reading}
-day <- "24_04_2020"
+day <- "26_04_2020"
 
 df <- fread(paste0("./data/treated/deaths_br_", 
                    day,
@@ -111,7 +111,7 @@ g1 <- df_pyramid_all_cumulative_deaths %>%
 
 anim1 <- g1 +
   # Here comes the gganimate specific bits
-  labs(subtitle = "Date: {frame_time}") +
+  labs(subtitle = "Data collect in 26/04/2020. Date: {frame_time}") +
   transition_time(date) +
   theme(plot.subtitle = element_text(face = "bold", size = 9))
   #ease_aes('linear')
@@ -120,3 +120,40 @@ animate(anim1, renderer = gifski_renderer(), width = 1000, height = 800)
 
 anim_save("./data/figures/evolution_covid19.gif")
 ```
+
+# Graph 2 - Using facet_geo
+
+```{r}
+g2 <- df_pyramid_all_cumulative_deaths %>% 
+  mutate(number_deaths_cum = ifelse(gender == "Female", -number_deaths_cum, number_deaths_cum)) %>% 
+  filter(date == dmy("26/04/2020")) %>% 
+  ggplot(aes(x = age_group, y = number_deaths_cum)) +
+  geom_col(aes(fill = gender)) +
+  scale_y_continuous(breaks = c(-200, -100, 0, 100, 200, 300),
+                     labels = as.character(c(200, 100, 0, 100, 200, 300))) +
+  labs(title = "Evolution of COVID-19 deaths (confirmed and suspected) across brazilian states - by gender and age group",
+       subtitle = "Data collect in 26/04/2020",
+       x = "Age group", 
+       y = "# of deaths",
+       caption = "Source: https://transparencia.registrocivil.org.br/especial-covid\nVis: @estevaovilela with ggplot2",
+       fill = "Gender") +
+  coord_flip() +
+  geofacet::facet_geo(~ state, grid = "br_states_grid1", label = "name") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(size = 5),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(face = "bold", size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        legend.title = element_text(face = "bold", size = 10),
+        legend.text = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9))
+
+ggsave("./data/figures/geo_states_covid19.jpeg", 
+       # inches
+       width = 10.416, height = 8.33)
+```
+
