@@ -48,11 +48,13 @@ Apparently we need to have all the data:
 https://purrr.tidyverse.org/reference/cross.html
 
 ```{r}
-df_pyramid_all <- purrr::cross_df(.l = list(
-  "state" = df %>% select(state) %>% unique() %>% pull(),
-  "date" = df %>% select(date) %>% unique() %>% pull(),
-  "gender" = df %>% select(gender) %>% unique() %>% pull(),
-  "age_group" = df %>% select(age_group) %>% unique() %>% pull()))
+df_pyramid_all <- purrr::cross_df(
+  .l = list(
+    "state" = df %>% select(state) %>% unique() %>% pull(),
+    "date" = df %>% select(date) %>% unique() %>% pull(),
+    "gender" = df %>% select(gender) %>% unique() %>% pull(),
+    "age_group" = df %>% select(age_group) %>% unique() %>% pull())
+  )
 
 df_pyramid_all <- df_pyramid_all %>% 
   mutate(date = lubridate::as_date(date))
