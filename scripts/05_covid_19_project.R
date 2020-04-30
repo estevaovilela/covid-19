@@ -21,7 +21,7 @@ url_function <- function(start_date, end_date) {
 
 # here we are collecting deaths that happenened in Brazil from Covid-19
 # from 01/01/2020 to 30/04/2020, grouped by age (10 years group) and gender.
-url <- "https://transparencia.registrocivil.org.br/api/covid?data_type=data_registro&start_date=2020-01-01&end_date=2020-04-30&state=Todos&search=death-covid&groupBy=gender"
+url <- "https://transparencia.registrocivil.org.br/api/covid?data_type=data_ocorrido&start_date=2020-01-01&end_date=2020-04-30&state=Todos&search=death-covid&groupBy=gender"
 
 data <- jsonlite::fromJSON(url)
 
@@ -106,14 +106,16 @@ df_output <- df_combinations %>%
 # Fixing columns ----------------------------------------------------------
 
 df_output <- df_output %>% 
-  separate(col = Date, into = c("year", "month", "day"), sep = "-", remove = FALSE) %>% 
-  unite(col = Date, ... = c("day", "month", "year"), sep = ".", remove = TRUE) %>% 
-  mutate(Sex = ifelse(Sex == "F", "f", "m")) %>% 
   mutate(Age = case_when(
     Age == "< 9" ~ "0",
     Age == "> 100" ~ "100",
     TRUE ~ str_extract(Age, pattern = "^\\d{2}"))
   ) %>% 
+  mutate(Age = as.integer(Age)) %>% 
+  arrange(Date, Sex, Age) %>% 
+  separate(col = Date, into = c("year", "month", "day"), sep = "-", remove = FALSE) %>% 
+  unite(col = Date, ... = c("day", "month", "year"), sep = ".", remove = TRUE) %>% 
+  mutate(Sex = ifelse(Sex == "F", "f", "m")) %>% 
   mutate(Country = "Brazil",
          Region = "All",
          AgeInt = 10,
