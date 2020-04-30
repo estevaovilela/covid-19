@@ -1,0 +1,141 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r library}
+library(tidyverse)
+library(data.table)
+
+library(lubridate)
+
+library(gganimate)
+library(ggthemes)
+library(geofacet)
+```
+
+```{r utilities}
+br_states_names <- as_tibble(geofacet::br_states_grid1)
+
+df_states_aux <- tibble(code = br_states_names$code,
+                        name = br_states_names$name)
+```
+
+```{r reading}
+day <- "29_04_2020"
+
+df_states <- fread(paste0("./data/treated/all_deaths_br_", 
+                         day,
+                         "_by_month_state_since_2015.csv"))
+
+df_cities <- fread(paste0("./data/treated/all_deaths_br_", 
+                         day,
+                         "_by_month_city_since_2015.csv"))
+```
+
+```{r}
+df_states <- df_states %>% 
+  as_tibble() %>% 
+  left_join(df_states_aux, by = c("state" = "code"))
+
+df_cities <- df_cities %>% 
+  as_tibble() %>% 
+  left_join(df_states_aux, by = c("state" = "code"))
+```
+
+# State-level
+
+```{r}
+df_states_filtered <- df_states %>% 
+  filter(year != 2020)
+
+df_states_filtered_mean <- df_states %>% 
+  filter(year != 2020) %>% 
+  group_by(name, month) %>% 
+  summarise(monthly_avg = mean(number_deaths))
+  
+
+ggplot() +
+  geom_line(data = df_states_filtered,
+            aes(x = month, y = number_deaths, group = year), color = alpha("grey", 0.7)) +
+  geom_line(data = df_states_filtered_mean, 
+            aes(x = month, y = monthly_avg), colour = "black", linetype = "dashed") +
+  geom_line(data = df_states %>% filter(year == 2020), 
+            aes(x = month, y = number_deaths, group = year), colour = alpha("red", 1)) +
+  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1),
+                     labels = as.character(seq(from = 1, to = 12, by = 1))) +
+  labs(title = "'Excess of deaths' in brazilian states: monthly average, 2015-2019 and 2020",
+       subtitle = "Data collect in 29/04/2020, Y-axis is at free scale",
+       x = "Month", 
+       y = "# of deaths",
+       caption = "Source: https://transparencia.registrocivil.org.br/registros\nVis: @estevaovilela with ggplot2") +
+  facet_wrap(~name, scales = "free_y") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9))
+
+ggsave("./data/figures/excess_of_deaths_states.jpeg", 
+       # inches
+       width = 10.416, height = 8.33)
+```
+
+# Capital
+
+```{r capitais}
+# Maceio, São Luis, Cuiaba, Macapa, Boa Vista, Florianopolis, Joao Pessoa
+df_capitals <- tibble(capital = c(
+  "Porto Alegre", "Florianopolis", "Curitiba",
+  "São Paulo", "Rio de Janeiro", "Belo Horizonte",
+  "Vitória", "Brasília", "Goiânia", "Campo Grande",
+  "Cuiaba", "Salvador", "Maceio", "Aracaju", "Recife",
+  "Joao Pessoa", "Natal", "Fortaleza", "São Luis",
+  "Teresina", "Manaus", "Belém", "Rio Branco", 
+  "Porto Velho", "Macapa", "Palmas", "Boa Vista"))
+```
+
+```{r}
+df_cities_filtered <- df_cities %>% 
+  semi_join(df_capitals, by = c("city" = "capital")) %>%
+  filter(year != 2020)
+
+df_cities_filtered_mean <- df_cities %>% 
+  semi_join(df_capitals, by = c("city" = "capital")) %>% 
+  filter(year != 2020) %>% 
+  group_by(city, month) %>% 
+  summarise(monthly_avg = mean(number_deaths))
+
+ggplot() +
+  geom_line(data = df_cities_filtered,
+            aes(x = month, y = number_deaths, group = year), color = alpha("grey", 0.7)) +
+  geom_line(data = df_cities_filtered_mean, 
+            aes(x = month, y = monthly_avg), colour = "black", linetype = "dashed") +
+  geom_line(data = df_cities %>% semi_join(df_capitals, by = c("city" = "capital")) %>% 
+              filter(year == 2020), 
+            aes(x = month, y = number_deaths, group = year), colour = alpha("red", 1)) +
+  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1),
+                     labels = as.character(seq(from = 1, to = 12, by = 1))) +
+  labs(title = "'Excess of deaths' in brazilian capitals: monthly average, 2015-2019 and 2020",
+       subtitle = "Data collect in 29/04/2020, Y-axis is at free scale",
+       x = "Month", 
+       y = "# of deaths",
+       caption = "Source: https://transparencia.registrocivil.org.br/registros\nVis: @estevaovilela with ggplot2") +
+  facet_wrap(~city, scales = "free_y") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9))
+```
+
