@@ -127,7 +127,7 @@ df_output <- df_output %>%
          Sex, Age, AgeInt, Metric, Measure,
          Value)
 
-write.csv(df, file = paste0("./data/treated/deaths_br_", 
+write.csv(df_output, file = paste0("./data/treated/deaths_br_", 
                             paste(rev(str_split(current_day, pattern = "-")[[1]]), collapse = "_"), 
                             "_covid_project.csv") , 
           row.names = FALSE)
