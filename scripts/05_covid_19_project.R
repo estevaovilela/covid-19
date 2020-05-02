@@ -82,8 +82,6 @@ for(i in 1:length(dates)) {
   cat("i: ", i, " j: ", j, "\n")
 }
 
-# Output ------------------------------------------------------------------
-
 # All combinations dataset ------------------------------------------------
 
 df_combinations <- purrr::cross_df(
@@ -91,11 +89,14 @@ df_combinations <- purrr::cross_df(
     "Date" = df %>% select(list_date) %>% unique() %>% pull(),
     "Sex" = df %>% select(list_gender) %>% unique() %>% pull(),
     "Age" = df %>% select(list_age) %>% unique() %>% pull())
-  )
+)
 
 df_combinations <- df_combinations %>% 
   mutate(Date = lubridate::as_date(Date)) 
 
+# Output ------------------------------------------------------------------
+
+# daily deaths
 df_output <- df_combinations %>% 
   left_join(df, by = c("Date" = "list_date", 
                        "Age" = "list_age", 
@@ -103,8 +104,15 @@ df_output <- df_combinations %>%
   mutate(Value = ifelse(is.na(list_death), 0, list_death)) %>% 
   select(-list_death)
 
+# daily deaths accumulated
+df_output_accumulated <-  df_output %>%
+  arrange(Sex, Age, Date) %>% 
+  group_by(Sex, Age) %>% 
+  mutate(Value_accumulated = cumsum(Value))
+
 # Fixing columns ----------------------------------------------------------
 
+# daily deaths
 df_output <- df_output %>% 
   mutate(Age = case_when(
     Age == "< 9" ~ "0",
@@ -127,7 +135,41 @@ df_output <- df_output %>%
          Sex, Age, AgeInt, Metric, Measure,
          Value)
 
+# daily deaths accumulated
+df_output_accumulated <- df_output_accumulated %>% 
+  ungroup() %>% 
+  mutate(Age = case_when(
+    Age == "< 9" ~ "0",
+    Age == "> 100" ~ "100",
+    TRUE ~ str_extract(Age, pattern = "^\\d{2}"))
+  ) %>% 
+  mutate(Age = as.integer(Age)) %>% 
+  arrange(Date, Sex, Age) %>% 
+  separate(col = Date, into = c("year", "month", "day"), sep = "-", remove = FALSE) %>% 
+  unite(col = Date, ... = c("day", "month", "year"), sep = ".", remove = TRUE) %>% 
+  mutate(Sex = ifelse(Sex == "F", "f", "m")) %>% 
+  mutate(Country = "Brazil",
+         Region = "All",
+         AgeInt = 10,
+         Metric = "Count",
+         Measure = "Deaths") %>% 
+  mutate(Value = Value_accumulated)
+
+df_output_accumulated <- df_output_accumulated %>% 
+  select(Country, Region, Date,
+         Sex, Age, AgeInt, Metric, Measure,
+         Value, -Value_accumulated)
+
+# Writing -----------------------------------------------------------------
+
+# daily deaths
 write.csv(df_output, file = paste0("./data/treated/deaths_br_", 
                             paste(rev(str_split(current_day, pattern = "-")[[1]]), collapse = "_"), 
                             "_covid_project.csv") , 
+          row.names = FALSE)
+
+# daily deaths accumulated
+write.csv(df_output, file = paste0("./data/treated/deaths_br_", 
+                                   paste(rev(str_split(current_day, pattern = "-")[[1]]), collapse = "_"), 
+                                   "_covid_project_accumulated.csv") , 
           row.names = FALSE)
