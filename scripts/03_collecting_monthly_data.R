@@ -60,6 +60,7 @@ for(i in 1:(length(dates) - 1)) {
   df_states <- df_states %>% 
     bind_rows(df_states_temp)
   
+  cat("i: ", i, "\n")
   # Pause for 0.1 seconds
   Sys.sleep(0.1)
 }

@@ -22,7 +22,7 @@ df_states_aux <- tibble(code = br_states_names$code,
 ```
 
 ```{r reading}
-day <- "29_04_2020"
+day <- "03_05_2020"
 
 df_states <- fread(paste0("./data/treated/all_deaths_br_", 
                          day,
@@ -65,7 +65,7 @@ ggplot() +
   scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1),
                      labels = as.character(seq(from = 1, to = 12, by = 1))) +
   labs(title = "'Excess of deaths' in brazilian states: monthly average, 2015-2019 and 2020",
-       subtitle = "Data collect in 29/04/2020, Y-axis is at free scale",
+       subtitle = "Data collect in 03/05/2020, Y-axis is at free scale",
        x = "Month", 
        y = "# of deaths",
        caption = "Source: https://transparencia.registrocivil.org.br/registros\nVis: @estevaovilela with ggplot2") +
