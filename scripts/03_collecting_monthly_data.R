@@ -29,9 +29,9 @@ url_function_city <- function(start_date, end_date, state) {
 # number of deaths by for each state and for each city -
 # iterating through each state
 
-may <- dmy("01/05/2020")
+june <- dmy("01/06/2020")
 current_day <- Sys.Date()
-dates <- seq.Date(dmy("01/01/2015"), may, by = "month")
+dates <- seq.Date(dmy("01/01/2015"), june, by = "month")
 
 # States ------------------------------------------------------------------
 
@@ -67,10 +67,12 @@ for(i in 1:(length(dates) - 1)) {
 
 # Cities ------------------------------------------------------------------
 
-states <- c("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO",
-            "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR",
-            "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO")
-
+states <- tibble(state = c("AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+                           "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", 
+                           "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"),
+                 state_code = c(12, 27, 16, 13, 29, 23, 53, 32, 52, 21,
+                                51, 50, 31, 15, 25, 41, 26, 22, 33, 24, 43,
+                                11, 14, 42, 35, 28, 17))
 
 # we are collecting a JSON file: number of deaths in each brazilian state
 # staring in 2015, monthly
@@ -82,17 +84,17 @@ data <- jsonlite::fromJSON(url)
 
 df_cities <- tibble()
 
-for(i in 1:length(states)) {
+for(i in 1:length(states$state)) {
   for(j in 1:(length(dates) - 1)) {
     # we retrieving data by month
     # so, for example, we are retrivieng data between
     # 01/06/2018 and 30/06/2018 (01/07/2018 - 1)
-    url <- url_function_city(dates[j], dates[j+1]-1, states[i])
+    url <- url_function_city(dates[j], dates[j+1]-1, states$state[i])
     
     raw_data <- jsonlite::fromJSON(url)
   
     df_cities_temp <- as_tibble(raw_data$data) %>% 
-      mutate(state = states[i],
+      mutate(state = states$state[i],
              month = lubridate::month(dates[j]),
              year = lubridate::year(dates[j]))
   
