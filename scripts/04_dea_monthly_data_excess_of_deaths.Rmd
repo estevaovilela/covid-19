@@ -139,3 +139,151 @@ ggplot() +
         strip.text.x = element_text(color = "black", face = "bold", size = 9))
 ```
 
+# Norte e Nordeste
+
+```{r capitais}
+# Maceio, São Luis, Cuiaba, Macapa, Boa Vista, Florianopolis, Joao Pessoa
+df_capitals <- tibble(capital = c(
+  "Porto Alegre", "Florianopolis", "Curitiba",
+  "São Paulo", "Rio de Janeiro", "Belo Horizonte",
+  "Vitória", "Brasília", "Goiânia", "Campo Grande",
+  "Cuiaba", "Salvador", "Maceio", "Aracaju", "Recife",
+  "Joao Pessoa", "Natal", "Fortaleza", "São Luís",
+  "Teresina", "Manaus", "Belém", "Rio Branco", 
+  "Porto Velho", "Macapa", "Palmas", "Boa Vista"),
+  state = c("RS", "SC", "PR", "SP", "RJ", "MG",
+            "ES", "DF", "GO", "MS", "MT", "BA", 
+            "AL", "SE", "PE", "PB", "RN", "CE", 
+            "MA", "PI", "AM", "PA", "AC", "RO",
+            "AP", "TO", "RR"))
+```
+
+```{r two df}
+df_ne_no_19 <- df_cities %>% 
+  filter(state %in% c("AC", "AP", "AM", "PA", "MA", "CE", "TO", "PI",
+                      "RR", "PB", "RN", "RO", "PE", "AL", "BA", "SE")) %>% 
+  semi_join(df_capitals, by = c("city" = "capital", "state")) %>%
+  filter(year == 2019)
+
+df_ne_no_20 <- df_cities %>% 
+  filter(state %in% c("AC", "AP", "AM", "PA", "MA", "CE", "TO", "PI",
+                      "RR", "PB", "RN", "RO", "PE", "AL", "BA", "SE")) %>% 
+  semi_join(df_capitals, by = c("city" = "capital", "state")) %>%
+  filter(year == 2020, month != 5)
+
+ggplot() +
+  geom_line(data = df_ne_no_19,
+            aes(x = month, y = number_deaths, group = year), color = alpha("black", 1)) +
+  geom_line(data = df_ne_no_20, 
+            aes(x = month, y = number_deaths, group = year), colour = alpha("red", 1)) +
+  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1),
+                     labels = as.character(seq(from = 1, to = 12, by = 1))) +
+  labs(title = "'Excesso de mortalidade geral' nas capitais do Norte e Nordeste - 2019/2020",
+       subtitle = "Dados coletados em 06/05/2020, Eixo-Y em escala livre",
+       x = "Mês", 
+       y = "# de óbitos registrados",
+       caption = "Fonte: https://transparencia.registrocivil.org.br/registros") +
+  facet_wrap(~city, scales = "free_y") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9))
+```
+
+```{r}
+df_ne_no <- df_cities %>% 
+  filter(state %in% c("AC", "AP", "AM", "PA", "MA", "CE", "TO", "PI",
+                      "RR", "PB", "RN", "RO", "PE", "AL", "BA", "SE")) %>% 
+  semi_join(df_capitals, by = c("city" = "capital", "state")) %>%
+  filter((year == 2020 & month != 5) | year == 2019)
+
+ggplot() +
+  geom_line(data = df_ne_no,
+            aes(x = month, y = number_deaths, group = year, color = as.factor(year))) +
+  scale_color_manual(values = c("black", "red")) +
+  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1),
+                     labels = as.character(seq(from = 1, to = 12, by = 1))) +
+  labs(title = "'Excesso de mortalidade geral' nas capitais do Norte e Nordeste - 2019/2020",
+       subtitle = "Dados coletados em 06/05/2020, Eixo-Y em escala livre",
+       x = "Mês", 
+       y = "# de óbitos registrados",
+       caption = "Fonte: https://transparencia.registrocivil.org.br/registros",
+       color = "Ano") +
+  facet_wrap(~city, scales = "free_y") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9))
+
+# salvado manualmente
+# ggsave("./data/figures/excess_of_deaths_north_northeast_states.jpeg", 
+#        # inches, 1000, 
+#        width = 10.416, height = 8.33)
+```
+
+```{r loess}
+capitais_nordeste <- df_ne_no %>% 
+  pull(city) %>% 
+  unique() %>% 
+  sort()
+
+loess_capitals <- vector("numeric")
+
+for(i in 1:length(capitais_nordeste)) {
+    loess_capitals_temp <- predict(loess(data = df_ne_no[df_ne_no$year == 2019,], 
+                                         formula = number_deaths ~ month, 
+                                         subset = city == capitais_nordeste[i], 
+                                         span = 0.5))
+    
+    loess_capitals <- append(x = loess_capitals, values = loess_capitals_temp)
+}
+
+loess_capitals <- append(x = loess_capitals, values = c(rep(NA, 64)))
+
+df_ne_no$number_deaths_loess <- vector("numeric", length = length(df_ne_no$city))
+
+df_ne_no_smoothed <- df_ne_no %>% 
+  arrange(year, city) %>% 
+  mutate(number_deaths_loess = loess_capitals) %>% 
+  mutate(number_deaths_loess = ifelse(is.na(number_deaths_loess), 
+                                      number_deaths,
+                                      number_deaths_loess))
+
+ggplot() +
+  geom_line(data = df_ne_no_smoothed,
+            aes(x = month, y = number_deaths_loess, group = year, color = as.factor(year))) +
+  scale_color_manual(values = c("black", "red")) +
+  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1),
+                     labels = as.character(seq(from = 1, to = 12, by = 1))) +
+  labs(title = "'Excesso de mortalidade geral' nas capitais do Norte e Nordeste - 2019/2020",
+       subtitle = "Dados coletados em 06/05/2020, Eixo-Y em escala livre",
+       x = "Mês", 
+       y = "# de óbitos registrados",
+       caption = "Fonte: https://transparencia.registrocivil.org.br/registros",
+       color = "Ano") +
+  facet_wrap(~city, scales = "free_y") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9))
+
+```
+
