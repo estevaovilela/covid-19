@@ -126,7 +126,7 @@ df_output <- df_output %>%
   mutate(Sex = ifelse(Sex == "F", "f", "m")) %>% 
   mutate(Country = "Brazil",
          Region = "All",
-         AgeInt = 10,
+         AgeInt = ifelse(Age == "100", 5, 10),
          Metric = "Count",
          Measure = "Deaths")
 
@@ -150,7 +150,7 @@ df_output_accumulated <- df_output_accumulated %>%
   mutate(Sex = ifelse(Sex == "F", "f", "m")) %>% 
   mutate(Country = "Brazil",
          Region = "All",
-         AgeInt = 10,
+         AgeInt = ifelse(Age == "100", 5, 10),
          Metric = "Count",
          Measure = "Deaths") %>% 
   mutate(Value = Value_accumulated)
