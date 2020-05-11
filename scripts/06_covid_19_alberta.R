@@ -12,6 +12,7 @@ clean_data <- function(raw) {
   data <- gsub("\"", replacement = "", x = data)
   data <- gsub(" ", replacement = "", x = data)
   data <- gsub("\\[", replacement = "", x = data)
+  data <- gsub("\\]", replacement = "", x = data)
   data <- str_split(data, pattern = ",")
   data
 }
