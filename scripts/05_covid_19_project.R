@@ -82,6 +82,10 @@ for(i in 1:length(dates)) {
   cat("i: ", i, " j: ", j, "\n")
 }
 
+# temporary
+df <- df %>% 
+  filter(list_gender != "I")
+
 # All combinations dataset ------------------------------------------------
 
 df_combinations <- purrr::cross_df(
