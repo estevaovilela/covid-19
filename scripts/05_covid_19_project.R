@@ -4,6 +4,7 @@
 library(jsonlite)
 library(tidyverse)
 library(lubridate)
+library(googlesheets4)
 
 # Functions ---------------------------------------------------------------
 
@@ -82,10 +83,6 @@ for(i in 1:length(dates)) {
   cat("i: ", i, " j: ", j, "\n")
 }
 
-# temporary
-df <- df %>% 
-  filter(list_gender != "I")
-
 # All combinations dataset ------------------------------------------------
 
 df_combinations <- purrr::cross_df(
@@ -96,7 +93,7 @@ df_combinations <- purrr::cross_df(
 )
 
 df_combinations <- df_combinations %>% 
-  mutate(Date = lubridate::as_date(Date)) 
+  mutate(Date = lubridate::as_date(Date))
 
 # Output ------------------------------------------------------------------
 
@@ -107,6 +104,19 @@ df_output <- df_combinations %>%
                        "Sex" = "list_gender")) %>% 
   mutate(Value = ifelse(is.na(list_death), 0, list_death)) %>% 
   select(-list_death)
+
+# treating cases reported with gender 'I'  (ignored)
+# create a category 'B' (both genders) that includes
+# 'F', 'M', and 'I'
+df_output <- df_output %>% 
+  filter(Sex != "I") %>% 
+  bind_rows(
+    df_output %>%
+      group_by(Date, Age) %>% 
+      summarise(Value = sum(Value)) %>% 
+      mutate(Sex = "B") %>% 
+      ungroup()
+    )
 
 # daily deaths accumulated
 df_output_accumulated <-  df_output %>%
@@ -127,7 +137,10 @@ df_output <- df_output %>%
   arrange(Date, Sex, Age) %>% 
   separate(col = Date, into = c("year", "month", "day"), sep = "-", remove = FALSE) %>% 
   unite(col = Date, ... = c("day", "month", "year"), sep = ".", remove = TRUE) %>% 
-  mutate(Sex = ifelse(Sex == "F", "f", "m")) %>% 
+  mutate(Sex = case_when(
+    Sex == "F" ~ "f",
+    Sex == "M" ~ "m",
+    Sex == "B" ~ "b")) %>% 
   mutate(Country = "Brazil",
          Region = "All",
          AgeInt = ifelse(Age == "100", 5, 10),
@@ -151,7 +164,10 @@ df_output_accumulated <- df_output_accumulated %>%
   arrange(Date, Sex, Age) %>% 
   separate(col = Date, into = c("year", "month", "day"), sep = "-", remove = FALSE) %>% 
   unite(col = Date, ... = c("day", "month", "year"), sep = ".", remove = TRUE) %>% 
-  mutate(Sex = ifelse(Sex == "F", "f", "m")) %>% 
+  mutate(Sex = case_when(
+    Sex == "F" ~ "f",
+    Sex == "M" ~ "m",
+    Sex == "B" ~ "b")) %>% 
   mutate(Country = "Brazil",
          Region = "All",
          AgeInt = ifelse(Age == "100", 5, 10),
@@ -177,3 +193,8 @@ write.csv(df_output_accumulated, file = paste0("./data/treated/deaths_br_",
                                    paste(rev(str_split(current_day, pattern = "-")[[1]]), collapse = "_"), 
                                    "_covid_project_accumulated.csv") , 
           row.names = FALSE)
+
+# writing in google sheets
+sheet_write(df_output_accumulated, 
+            ss = "https://docs.google.com/spreadsheets/d/17w6gadj-nwtDFP6dmAkkMwd4lDEKD9Iqf6R0qeftvQc/edit", 
+            sheet = "database")
