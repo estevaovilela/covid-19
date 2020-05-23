@@ -1,38 +1,43 @@
 
 # Library -----------------------------------------------------------------
 
-library(jsonlite)
+library(httr)
 library(tidyverse)
 library(lubridate)
 library(googlesheets4)
 
-# Functions ---------------------------------------------------------------
-
-url_function <- function(start_date, end_date) {
-  paste0("https://transparencia.registrocivil.org.br/api/covid?data_type=data_ocorrido&start_date=",
-         start_date,
-         "&end_date=",
-         end_date,
-         "&state=Todos&search=death-covid&groupBy=gender")
-}
-
 # Collecting --------------------------------------------------------------
 
-# we are collecting a JSON file
-
-# here we are collecting deaths that happenened in Brazil from Covid-19
+# deaths that happenened in Brazil from Covid-19
 # from 01/01/2020 to 30/04/2020, grouped by age (10 years group) and gender.
-url <- "https://transparencia.registrocivil.org.br/api/covid?data_type=data_ocorrido&start_date=2020-01-01&end_date=2020-04-30&state=Todos&search=death-covid&groupBy=gender"
+# "https://transparencia.registrocivil.org.br/api/covid?data_type=data_ocorrido&start_date=2020-01-01&end_date=2020-04-30&state=Todos&search=death-covid&groupBy=gender"
+# but, for now we need a token to request the data
 
-data <- jsonlite::fromJSON(url)
+# getting the needed token
+# login
+login_url <- "https://transparencia.registrocivil.org.br/registral-covid"
+# Start with a fresh handle
+h <- curl::new_handle()
+# Ask server
+request <- curl::curl_fetch_memory(login_url, handle = h)
+# https://cran.r-project.org/web/packages/curl/vignettes/intro.html#reading_cookies
+cookies <- curl::handle_cookies(h)
+# we need the "XRSF-TOKEN"
+token <- cookies$value[which(cookies$name == "XSRF-TOKEN")]
 
 # so, we need to iterate through only dates to get our data:
 # number of daily deaths by gender and age group (10 years) 
 # since the first death in Brazil
-
 current_day <- Sys.Date()
+dates <- seq.Date(dmy("16/03/2020"), current_day, by = "day")
 
-dates <- seq.Date(dmy("14/03/2020"), current_day, by = "day")
+# curl into httr:
+# https://curl.trillworks.com/#r
+headers <- c(
+  `X-XSRF-TOKEN` = token,
+  # dont know if it is a private info
+  `User-Agent` = #YOUR USER AGENT
+)
 
 list_date <- list()
 list_age <- list()
@@ -43,9 +48,24 @@ df <- tibble()
 
 for(i in 1:length(dates)) {
   
-  # we retrieving data day by day
-  url <- url_function(dates[i], dates[i])
-  raw_data <- jsonlite::fromJSON(url)
+  # curl into httr
+  # https://curl.trillworks.com/#r
+  params <- list(
+    `chart` = 'chartEspecial4',
+    `data_type` = 'data_ocorrido',
+    # we retrieving data day by day
+    `start_date` = dates[i],
+    `end_date` = dates[i],
+    `state` = 'Todos',
+    `search` = 'death-covid',
+    `groupBy` = 'gender'
+  )
+  
+  response <- httr::GET(url = 'https://transparencia.registrocivil.org.br/api/covid', 
+                        httr::add_headers(.headers=headers), 
+                        query = params)
+  
+  raw_data <- httr::content(response)
   age_groups <- names(raw_data["chart"][[1]])
 
   for(j in 1:length(age_groups)) {
