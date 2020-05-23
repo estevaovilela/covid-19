@@ -50,13 +50,18 @@ rm_symbols <- function(str, pattern="all") {
 
 # Reading -----------------------------------------------------------------
 
-day <- "06_05_2020"
+day <- "23_05_2020"
 
 df_cities <- fread(paste0("./data/treated/all_deaths_br_", 
                           day, 
-                          "_by_month_city_since_2015.csv"))
+                          "_by_month_city_since_2019.csv"))
 
 df_cities_ibge <- read_excel("./data/raw/RELATORIO_DTB_BRASIL_MUNICIPIO.xls")
+
+# metropolitan capitals
+df_rm <- read_excel("./data/raw/Óbitos mensais - capitais de RM.xlsx",
+                    sheet = "cidades")
+df_rm$responsável <- NULL
 
 # Preparing ---------------------------------------------------------------
 
@@ -75,6 +80,9 @@ states <- tibble(state = c("AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
                  state_code = c(12, 27, 16, 13, 29, 23, 53, 32, 52, 21,
                                 51, 50, 31, 15, 25, 41, 26, 22, 33, 24, 43,
                                 11, 14, 42, 35, 28, 17))
+
+df_rm[which(df_rm$UF == "DF"), "cod_ibge"] <- 5300108
+df_rm[which(df_rm$UF == "DF"), "cidade"] <- "Brasília"
 
 # Adding city code --------------------------------------------------------
 
@@ -108,13 +116,13 @@ df_cities_ibge <- df_cities_ibge %>%
   mutate(municipio_without_symbol = str_remove(municipio_without_symbol, pattern = "'")) %>% 
   mutate(municipio_without_symbol = str_to_lower(municipio_without_symbol))
 
-# 4816 cities get the correct 'join'
+# 4709/4732 cities get the correct 'join'
 df_city_joined <- df_cities_adm_record %>% 
   left_join(df_cities_ibge, by = c("state_code" = "uf_code", 
                                    "city_without_symbol" = "municipio_without_symbol")) %>% 
   filter(!is.na(municipio))
 
-# 24 cities don't get the correct 'join'
+# 23 cities don't get the correct 'join'
 df_to_correct <- df_cities_adm_record %>% 
   left_join(df_cities_ibge, by = c("state_code" = "uf_code", 
                                    "city_without_symbol" = "municipio_without_symbol")) %>% 
@@ -136,8 +144,8 @@ df_fuzzy <- df_to_correct %>%
 
 # With manual inspection:
 # *** need to remove hard code
-# 1) Discard lines 5, 18, 20. The 'join' brought a city from another state
-df_fuzzy <- df_fuzzy[-c(5, 17, 19), ]
+# 1) Discard lines 6, 16, 18. The 'join' brought a city from another state
+df_fuzzy <- df_fuzzy[-c(6, 16, 18), ]
 
 # 2) Not founded: for now, we'll remove this cities
 df_fuzzy <- df_fuzzy %>% 
@@ -171,9 +179,27 @@ df_city_complete <- df_city_joined %>%
 
 # cities
 df_output <- df_cities %>% 
-  inner_join(df_city_complete, by = c("city", "state"))
+  inner_join(df_city_complete, by = c("city", "state")) %>% 
+  select(state_code.x, state, uf, mesorregiao_code:municipio,
+         city_without_symbol, city, year, month, number_deaths)
+colnames(df_output)[1] <- "state_code"
 
 write.csv(df_output, file = paste0("./data/treated/all_deaths_br_", 
                                    day, 
-                                   "_by_month_city_since_2015_ibge_code.csv") , 
+                                   "_by_month_city_since_2019_ibge_code.csv") , 
+          row.names = FALSE)
+
+# cities - capitals of metropolitan regions
+df_rm_output <- df_cities %>% 
+  inner_join(df_city_complete, by = c("city", "state")) %>% 
+  mutate(municipio_code = as.numeric(municipio_code)) %>% 
+  inner_join(df_rm %>% select(RM, cod_ibge), 
+             by = c("municipio_code" = "cod_ibge")) %>% 
+  select(state_code.x, state, uf, mesorregiao_code:microrregiao,
+         RM, municipio_code, municipio,
+         city_without_symbol, city, year, month, number_deaths)
+
+write.csv(df_rm_output, file = paste0("./data/treated/all_deaths_br_", 
+                                   day, 
+                                   "_by_month_metropolitan_capital_since_2019_ibge_code.csv") , 
           row.names = FALSE)
