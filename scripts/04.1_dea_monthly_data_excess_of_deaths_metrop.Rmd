@@ -1,0 +1,160 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r library}
+library(tidyverse)
+library(data.table)
+
+library(lubridate)
+
+library(ggthemes)
+```
+
+```{r reading}
+day <- "23_05_2020"
+
+df_rm_obitos <- fread(paste0("./data/treated/all_deaths_br_", 
+                                      day, 
+                                      "_by_month_metropolitan_region_since_2019_ibge_code.csv")
+                   )
+
+df_rm_obitos <- df_rm_obitos %>% 
+  as_tibble()
+```
+
+# Comparando RM e Capital da RM
+## Only march and april
+
+```{r}
+df_graph <- df_rm_obitos %>% 
+  # some cities doesn't have any deaths recorded
+  filter(!is.na(year)) %>% 
+  filter(month == 3 | month == 4) %>% 
+  group_by(rm, capital, year) %>% 
+  summarise(total = sum(number_deaths)) %>% 
+  spread(year, total) %>% 
+  mutate(dif = (`2020` - `2019`) / `2019` * 100)
+
+df_graph <- df_graph %>% 
+  ungroup() %>% 
+  mutate(capital = ifelse(capital == 1, "Capital of Metropolitan Area", "Metropolitan Area without Capital"))
+
+ggplot() +
+  geom_segment(data = df_graph %>% select(rm, capital, dif) %>% spread(capital, dif) %>% arrange(rm),
+               aes(x = rm, xend = rm, 
+                   y = `Capital of Metropolitan Area`, yend = `Metropolitan Area without Capital`), 
+               color = alpha("black", 0.7)) +
+  geom_point(data = df_graph %>% arrange(rm),
+            aes(x = rm, y = dif, color = capital)) +
+  coord_flip() +
+  scale_y_continuous(breaks = seq(from = -40, to = 80, by = 10),
+                     labels = as.character(seq(from = -40, to = 80, by = 10))) +
+  labs(title = "Figure 1: Difference, in percent, between number of deaths registered in march and april of 2020 compared to 2019,\nCapital of Metropolitan Area and Metropolitan Area without Capital",
+       subtitle = "Data collected on May, 23",
+       x = "Metropolitan Area", 
+       y = "Difference, in percent (%)",
+       caption = "Source: https://transparencia.registrocivil.org.br/registros") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.text.x = element_text(face = "bold", size = 9),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9),
+        legend.title = element_blank())
+```
+
+## Whole year
+
+```{r}
+df_graph_2 <- df_rm_obitos %>% 
+  # some cities doesn't have any deaths recorded
+  filter(!is.na(year)) %>% 
+  filter(month <= 4) %>% 
+  group_by(rm, capital, year) %>% 
+  summarise(total = sum(number_deaths)) %>% 
+  spread(year, total) %>% 
+  mutate(dif = (`2020` - `2019`) / `2019` * 100)
+
+df_graph_2 <- df_graph_2 %>% 
+  ungroup() %>% 
+  mutate(capital = ifelse(capital == 1, "Capital of Metropolitan Area", "Metropolitan Area without Capital"))
+
+ggplot() +
+  geom_segment(data = df_graph_2 %>% select(rm, capital, dif) %>% spread(capital, dif) %>% arrange(rm),
+               aes(x = rm, xend = rm, 
+                   y = `Capital of Metropolitan Area`, yend = `Metropolitan Area without Capital`), 
+               color = alpha("black", 0.7)) +
+  geom_point(data = df_graph_2 %>% arrange(rm),
+            aes(x = rm, y = dif, color = capital)) +
+  coord_flip() +
+  scale_y_continuous(breaks = seq(from = -40, to = 80, by = 10),
+                     labels = as.character(seq(from = -40, to = 80, by = 10))) +
+  labs(title = "Figure 1: Difference, in percent, between number of deaths registered in 2020 compared to 2019,\nCapital of Metropolitan Area and Metropolitan Area without Capital",
+       subtitle = "Data collected on May, 23",
+       x = "Metropolitan Area", 
+       y = "Difference, in percent (%)",
+       caption = "Source: https://transparencia.registrocivil.org.br/registros") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.text.x = element_text(face = "bold", size = 9),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9),
+        legend.title = element_blank())
+```
+
+## Temporal
+
+```{r}
+df_graph_line <- df_rm_obitos %>% 
+   # some cities doesn't have any deaths recorded
+  filter(!is.na(year)) %>% 
+  group_by(rm, year, month, capital) %>% 
+  summarise(number_deaths = sum(number_deaths))
+
+df_graph_line <- df_graph_line %>% 
+  ungroup() %>% 
+  mutate(capital = ifelse(capital == 1, "Capital of Metropolitan Area", "Metropolitan Area without Capital")) %>% 
+  filter((year == 2019 & month <= 6) | (year == 2020 & month <= 4))
+
+ggplot() +
+  geom_line(data = df_graph_line %>% filter(capital == "Capital of Metropolitan Area"),
+            aes(x = month, y = number_deaths, group = year, color = factor(year))) +
+  geom_line(data = df_graph_line %>% filter(capital != "Capital of Metropolitan Area"),
+            aes(x = month, y = number_deaths, group = year, color = factor(year)),
+            linetype = "dashed") +
+  scale_color_manual(values = c("black", "red")) +
+  facet_wrap(~ rm, scales = "free_y") +
+  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1),
+                     labels = as.character(seq(from = 1, to = 12, by = 1))) +
+  labs(title = "Figure 2: Temporal evolution of excess mortality across main metropolitan areas in Brazil, monthly comparison between 2019-2020",
+       subtitle = "Data collected on May, 23; Solid line: Capital of Metropolitan Area, Dashed line: Metropolitan Area without Capital",
+       x = "Month", 
+       y = "# of deaths",
+       color = "Year",
+       caption = "Source: https://transparencia.registrocivil.org.br/registros") +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(face = "bold", size = 8),
+        axis.text.x = element_text(face = "bold", size = 8),
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(0.5, "lines"),
+        plot.title = element_text(size = 12),
+        plot.caption = element_text(face = "bold", size = 9),
+        axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10),
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "black", face = "bold", size = 9),
+        legend.title = element_blank())
+```
