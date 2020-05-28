@@ -50,7 +50,7 @@ dates <- seq.Date(dmy(paste0("01/01/", year)), june, by = "month")
 headers <- c(
   `X-XSRF-TOKEN` = token,
   # dont know if it is a private info
-  `User-Agent` = #YOUR USER AGENT
+  `User-Agent` = # Your User-Agent
 )
 
 # States ------------------------------------------------------------------

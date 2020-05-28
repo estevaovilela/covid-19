@@ -24,7 +24,8 @@ request <- curl::curl_fetch_memory(login_url, handle = h)
 cookies <- curl::handle_cookies(h)
 # we need the "XRSF-TOKEN"
 token <- cookies$value[which(cookies$name == "XSRF-TOKEN")]
-
+# if this don't succed need to get it manually
+token <- "eyJpdiI6ImZNMXc3TDM5Z2JxQUl6NXVFWTFHOVE9PSIsInZhbHVlIjoiUk5wQU13blA1MUI0bW5BWTR0THVQUGpvWHBEYVpwMEpvN040SGlabEdsQ2pRRFZ4aGtYOG9Yb1R0S1F5dzZFbyIsIm1hYyI6ImZkNTg1MjRhYWRmMzZkMTE5MjI1NjI3ZDJhODBhMjQwNTg2OWFlODEyNDZhNmZmZjg5NjY2YWU1YTZhYzAwZmIifQ=="
 # so, we need to iterate through only dates to get our data:
 # number of daily deaths by gender and age group (10 years) 
 # since the first death in Brazil
@@ -36,7 +37,7 @@ dates <- seq.Date(dmy("16/03/2020"), current_day, by = "day")
 headers <- c(
   `X-XSRF-TOKEN` = token,
   # dont know if it is a private info
-  `User-Agent` = #YOUR USER AGENT
+  `User-Agent` = # Your User-Agent
 )
 
 list_date <- list()
@@ -165,10 +166,11 @@ df_output <- df_output %>%
          Region = "All",
          AgeInt = ifelse(Age == "100", 5, 10),
          Metric = "Count",
-         Measure = "Deaths")
+         Measure = "Deaths",
+         Code = paste0("BR", Date))
 
 df_output <- df_output %>% 
-  select(Country, Region, Date,
+  select(Country, Region, Code, Date,
          Sex, Age, AgeInt, Metric, Measure,
          Value)
 
@@ -192,13 +194,13 @@ df_output_accumulated <- df_output_accumulated %>%
          Region = "All",
          AgeInt = ifelse(Age == "100", 5, 10),
          Metric = "Count",
-         Measure = "Deaths") %>% 
-  mutate(Value = Value_accumulated)
+         Measure = "Deaths",
+         Code = paste0("BR", Date))
 
 df_output_accumulated <- df_output_accumulated %>% 
-  select(Country, Region, Date,
+  select(Country, Region, Code, Date,
          Sex, Age, AgeInt, Metric, Measure,
-         Value, -Value_accumulated)
+         Value = Value_accumulated)
 
 # Writing -----------------------------------------------------------------
 
