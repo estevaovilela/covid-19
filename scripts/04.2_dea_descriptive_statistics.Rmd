@@ -1,0 +1,155 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r library}
+library(tidyverse)
+library(data.table)
+library(kableExtra)
+```
+
+```{r reading}
+day <- "23_05_2020"
+
+df_brazil <- fread(paste0("./data/treated/all_deaths_br_", 
+                                      day, 
+                                      "_by_month_metropolitan_region_since_2019_ibge_code.csv")) %>%
+  as_tibble()
+
+df_ecuador <- fread("./data/treated/all_deaths_ecuador_by_month_provincia_since_2018.csv") %>% 
+  as_tibble()
+```
+
+# Brazil
+## Whole year
+
+```{r}
+df_br_stat_jan_apr <- df_brazil %>% 
+  filter(month <= 4) %>% 
+  mutate(capital = ifelse(capital == 1, 
+                          "Capital of Metropolitan Area", 
+                          "Metropolitan Area without Capital")) %>% 
+  group_by(rm, capital, year, month) %>% 
+  summarise(number_deaths = sum(number_deaths)) %>% 
+  group_by(rm, capital, year) %>% 
+  summarise(avg = round(mean(number_deaths)),
+            deviation = round(sd(number_deaths)),
+            coefficient = round(deviation/avg*100)) %>% 
+  gather(key = "measure", value = "value", -c("rm", "capital", "year")) %>% 
+  unite(col = "measure", ... = c("measure", "year"), remove = TRUE) %>% 
+  spread(measure, value)
+```
+
+```{r}
+df_br_stat_jan_apr %>% 
+  ungroup() %>% 
+  select(rm:avg_2020, deviation_2019, deviation_2020,
+         coefficient_2019, coefficient_2020) %>% 
+  setNames(c("Metropolitan area", "Level", "2019", "2020",
+             "2019", "2020", "2019", "2020")) %>% 
+  kable() %>% 
+  kable_styling() %>% 
+  add_header_above(c(" " = 2, "Average" = 2, 
+                     "Standard deviation" = 2,
+                     "Coefficient of variation" = 2)) %>% 
+  save_kable(file = "./data/figures/br_stats_january_april.pdf")
+  
+```
+
+## March and April
+
+```{r}
+df_br_stat_mar_apr <- df_brazil %>% 
+  filter(month == 3 | month == 4) %>% 
+  mutate(capital = ifelse(capital == 1, 
+                          "Capital of Metropolitan Area", 
+                          "Metropolitan Area without Capital")) %>% 
+  group_by(rm, capital, year, month) %>% 
+  summarise(number_deaths = sum(number_deaths)) %>% 
+  group_by(rm, capital, year) %>% 
+  summarise(avg = round(mean(number_deaths)),
+            deviation = round(sd(number_deaths)),
+            coefficient = round(deviation/avg*100)) %>% 
+  gather(key = "measure", value = "value", -c("rm", "capital", "year")) %>% 
+  unite(col = "measure", ... = c("measure", "year"), remove = TRUE) %>% 
+  spread(measure, value)
+```
+
+```{r}
+df_br_stat_mar_apr %>% 
+  ungroup() %>% 
+  select(rm:avg_2020, deviation_2019, deviation_2020,
+         coefficient_2019, coefficient_2020) %>% 
+  setNames(c("Metropolitan area", "Level", "2019", "2020",
+             "2019", "2020", "2019", "2020")) %>% 
+  kable() %>% 
+  kable_styling() %>% 
+  add_header_above(c(" " = 2, "Average" = 2, 
+                     "Standard deviation" = 2,
+                     "Coefficient of variation" = 2)) %>% 
+  save_kable(file = "./data/figures/br_stats_march_april.pdf")
+```
+
+# Ecuador
+
+## Whole year
+
+```{r}
+df_ecu_stat_jan_apr <- df_ecuador %>% 
+  filter(month <= 4) %>% 
+  group_by(provincia, year) %>% 
+  summarise(avg = round(mean(number_deaths)),
+            deviation = round(sd(number_deaths)),
+            coefficient = round(deviation/avg*100)) %>% 
+  gather(key = "measure", value = "value", -c("provincia", "year")) %>% 
+  unite(col = "measure", ... = c("measure", "year"), remove = TRUE) %>% 
+  spread(measure, value)
+```
+
+```{r}
+df_ecu_stat_jan_apr %>% 
+  ungroup() %>% 
+  select(provincia:avg_2020, 
+         deviation_2018, deviation_2019, deviation_2020,
+         coefficient_2018, coefficient_2019, coefficient_2020) %>% 
+  setNames(c("Provincia", rep(c("2018", "2019", "2020"), 3))) %>% 
+  kable() %>% 
+  kable_styling() %>% 
+  add_header_above(c(" " = 1, 
+                     "Average" = 3, 
+                     "Standard deviation" = 3,
+                     "Coefficient of variation" = 3)) %>% 
+  save_kable(file = "./data/figures/ecu_stats_january_april.pdf")
+```
+
+## March and April
+
+```{r}
+df_ecu_stat_marc_apr <- df_ecuador %>% 
+  filter(month == 3 | month == 4) %>% 
+  group_by(provincia, year) %>% 
+  summarise(avg = round(mean(number_deaths)),
+            deviation = round(sd(number_deaths)),
+            coefficient = round(deviation/avg*100)) %>% 
+  gather(key = "measure", value = "value", -c("provincia", "year")) %>% 
+  unite(col = "measure", ... = c("measure", "year"), remove = TRUE) %>% 
+  spread(measure, value)
+```
+
+```{r}
+df_ecu_stat_marc_apr %>% 
+  ungroup() %>% 
+  select(provincia:avg_2020, 
+         deviation_2018, deviation_2019, deviation_2020,
+         coefficient_2018, coefficient_2019, coefficient_2020) %>% 
+  setNames(c("Provincia", rep(c("2018", "2019", "2020"), 3))) %>% 
+  kable() %>% 
+  kable_styling() %>% 
+  add_header_above(c(" " = 1, 
+                     "Average" = 3, 
+                     "Standard deviation" = 3,
+                     "Coefficient of variation" = 3)) %>% 
+  save_kable(file = "./data/figures/ecu_stats_march_april.pdf")
+  
+```
