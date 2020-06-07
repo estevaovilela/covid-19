@@ -1,0 +1,93 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r library}
+library(tidyverse)
+library(data.table)
+library(sf)
+```
+
+```{r reading}
+day <- "06_06_2020"
+
+df_brazil_all_deaths <- fread(paste0("./data/treated/all_deaths_br_", 
+                                      day, 
+                                      "_by_month_metropolitan_region_since_2019_ibge_code.csv")) %>%
+  as_tibble()
+
+df_brazil_covid <- fread("https://raw.githubusercontent.com/capyvara/brazil-civil-registry-data/master/civil_registry_covid_cities.csv")
+```
+
+```{r}
+df_brazil_all_deaths %>% 
+  filter(!is.na(year)) %>% 
+  filter(month >= 3 & month <= 5) %>% 
+  group_by(rm, cod_ibge, cidade, capital, ) %>% 
+  summarise(total_obitos = sum(number_deaths))
+```
+
+
+Usando o excelente pacote geobr
+
+```{r}
+geo_municipality <- geobr::read_municipality(code_muni = "MG")
+```
+
+
+
+
+
+
+
+
+
+Bivariate map
+
+Inspiração e código:
+
+https://murray-cecile.github.io/labor-market-trends/
+
+Paleta:
+
+https://www.joshuastevens.net/cartography/make-a-bivariate-choropleth-map/
+
+Acho que o principal problema é que a paleta de "bias" não é sequencial e sim divergente...
+
+```{r}
+data_bi_map <- data_map %>% 
+  select(CO_MUNICIPIO, bias) %>% 
+  left_join(df_tx_abandono, 
+            by = c("CO_MUNICIPIO" = "cod_municipio"))
+
+data_bi_map <- data_bi_map %>% 
+  mutate(bias_cat = case_when(
+    bias > 0.10 ~ 1,
+    bias <= 0.10 & bias >= -0.10 ~ 2,
+    bias < -0.10 ~ 3,
+  ), tx_abandono_cat = case_when(
+    tx_abandono_1_serie < 10 ~ "A",
+    tx_abandono_1_serie < 20 ~ "B",
+    tx_abandono_1_serie < 100 ~ "C"
+  )) %>% 
+  mutate(cat_fill = paste0(bias_cat, tx_abandono_cat))
+
+muni_bi_map <- muni %>% 
+  left_join(data_bi_map, by = c("code_muni" = "CO_MUNICIPIO"))
+
+ggplot() +
+  geom_sf(data = muni_bi_map, aes(fill = cat_fill), colour = NA) +
+  coord_sf() +
+  scale_fill_manual(values = c("1A" = "#e8e8e8", "1B" = "#ace4e4", "1C" = "#5ac8c8",
+                               "2A" = "#dfb0d6", "2B" = "#a5add3", "2C" = "#5698b9",
+                               "3A" = "#be64ac", "3B" = "#8c62aa", "3C" = "#3b4994")) +
+  labs(title = "Variação total no número de matrículas no 1º Ano do Ensino Médio na rede estadual de Minas Gerais - 2018/2019 (%)",
+       caption = "INEP. Censo Escolar 2018 e 2019") +
+  theme(rect = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank())
+```
+
