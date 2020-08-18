@@ -13,7 +13,7 @@ library(ggthemes)
 ```
 
 ```{r reading}
-day <- "06_06_2020"
+day <- "05_08_2020"
 
 df_brazil <- fread(paste0("./data/treated/all_deaths_br_", 
                           day, 
@@ -39,69 +39,34 @@ tema <- theme(axis.text.y = element_text(face = "bold", size = 9),
 ```
 
 # Brazil
-## March, april and may
-
-```{r}
-df_br_march_may <- df_brazil %>% 
-  # some cities doesn't have any deaths recorded
-  filter(!is.na(year)) %>% 
-  filter(month >= 3 & month <= 5) %>% 
-  group_by(rm, capital, year) %>% 
-  summarise(total = sum(number_deaths)) %>% 
-  spread(year, total) %>% 
-  mutate(dif = (`2020` - `2019`) / `2019` * 100)
-
-df_br_march_may <- df_br_march_may %>% 
-  ungroup() %>% 
-  mutate(capital = ifelse(capital == 1, "Capital of Metropolitan Area", "Metropolitan Area without Capital"))
-
-ggplot() +
-  geom_segment(data = df_br_march_may %>% select(rm, capital, dif) %>% spread(capital, dif) %>% arrange(rm),
-               aes(x = rm, xend = rm, 
-                   y = `Capital of Metropolitan Area`, yend = `Metropolitan Area without Capital`), 
-               color = alpha("black", 0.7)) +
-  geom_point(data = df_br_march_may %>% arrange(rm),
-            aes(x = rm, y = dif, color = capital)) +
-  coord_flip() +
-  scale_y_continuous(breaks = seq(from = -40, to = 90, by = 10),
-                     labels = as.character(seq(from = -40, to = 90, by = 10))) +
-  labs(title = "Figure 1: Difference, in percent, between number of deaths registered from March to May of 2020 compared to 2019,\nCapital of Metropolitan Area and Metropolitan Area without Capital",
-       subtitle = "Data collected on June, 6",
-       x = "Metropolitan Area", 
-       y = "Difference, in percent (%)",
-       caption = "Source: https://transparencia.registrocivil.org.br/registros") +
-  theme_linedraw() +
-  tema
-```
-
 ## Whole year
 
 ```{r}
-df_br_january_may <- df_brazil %>% 
+df_br_january_june <- df_brazil %>% 
   # some cities doesn't have any deaths recorded
   filter(!is.na(year)) %>% 
-  filter(month <= 5) %>% 
+  filter(month <= 6) %>% 
   group_by(rm, capital, year) %>% 
   summarise(total = sum(number_deaths)) %>% 
   spread(year, total) %>% 
   mutate(dif = (`2020` - `2019`) / `2019` * 100)
 
-df_br_january_may <- df_br_january_may %>% 
+df_br_january_june <- df_br_january_june %>% 
   ungroup() %>% 
   mutate(capital = ifelse(capital == 1, "Capital of Metropolitan Area", "Metropolitan Area without Capital"))
 
 ggplot() +
-  geom_segment(data = df_br_january_may %>% select(rm, capital, dif) %>% spread(capital, dif) %>% arrange(rm),
+  geom_segment(data = df_br_january_june %>% select(rm, capital, dif) %>% spread(capital, dif) %>% arrange(rm),
                aes(x = rm, xend = rm, 
                    y = `Capital of Metropolitan Area`, yend = `Metropolitan Area without Capital`), 
                color = alpha("black", 0.7)) +
-  geom_point(data = df_br_january_may %>% arrange(rm),
+  geom_point(data = df_br_january_june %>% arrange(rm),
             aes(x = rm, y = dif, color = capital)) +
   coord_flip() +
-  scale_y_continuous(breaks = seq(from = -40, to = 80, by = 10),
-                     labels = as.character(seq(from = -40, to = 80, by = 10))) +
-  labs(title = "Figure 1: Difference, in percent, between number of deaths registered in 2020 compared to 2019,\nCapital of Metropolitan Area and Metropolitan Area without Capital",
-       subtitle = "Data collected on June, 6",
+  scale_y_continuous(breaks = seq(from = -50, to = 80, by = 10),
+                     labels = as.character(seq(from = -50, to = 80, by = 10))) +
+  labs(title = "Figure 1: Difference, in percent, between the number of deaths registered in 2020 compared to 2019 in the months January to June.\nBrazilian Metropolitan Capitals and Metropolitan Areas without Capital.",
+       subtitle = "Data collected on August, 5",
        x = "Metropolitan Area", 
        y = "Difference, in percent (%)",
        caption = "Source: https://transparencia.registrocivil.org.br/registros") +

@@ -10,7 +10,7 @@ library(kableExtra)
 ```
 
 ```{r reading}
-day <- "06_06_2020"
+day <- "05_08_2020"
 
 df_brazil <- fread(paste0("./data/treated/all_deaths_br_", 
                                       day, 
@@ -25,8 +25,8 @@ df_ecuador <- fread("./data/treated/all_deaths_ecuador_by_month_provincia_since_
 ## Whole year
 
 ```{r}
-df_br_stat_jan_may <- df_brazil %>% 
-  filter(month <= 5) %>% 
+df_br_stat_jan_june <- df_brazil %>% 
+  filter(month <= 6) %>% 
   mutate(capital = ifelse(capital == 1, 
                           "Capital of Metropolitan Area", 
                           "Metropolitan Area without Capital")) %>% 
@@ -42,7 +42,7 @@ df_br_stat_jan_may <- df_brazil %>%
 ```
 
 ```{r}
-df_br_stat_jan_may %>% 
+df_br_stat_jan_june %>% 
   ungroup() %>% 
   select(rm:avg_2020, deviation_2019, deviation_2020,
          coefficient_2019, coefficient_2020) %>% 
@@ -53,42 +53,8 @@ df_br_stat_jan_may %>%
   add_header_above(c(" " = 2, "Average" = 2, 
                      "Standard deviation" = 2,
                      "Coefficient of variation" = 2)) %>% 
-  save_kable(file = "./data/figures/br_stats_january_may.pdf")
+  save_kable(file = "./data/figures/br_stats_january_june.pdf")
   
-```
-
-## March and May
-
-```{r}
-df_br_stat_mar_may <- df_brazil %>% 
-  filter(month >= 3 & month <= 5) %>% 
-  mutate(capital = ifelse(capital == 1, 
-                          "Capital of Metropolitan Area", 
-                          "Metropolitan Area without Capital")) %>% 
-  group_by(rm, capital, year, month) %>% 
-  summarise(number_deaths = sum(number_deaths)) %>% 
-  group_by(rm, capital, year) %>% 
-  summarise(avg = round(mean(number_deaths)),
-            deviation = round(sd(number_deaths)),
-            coefficient = round(deviation/avg*100)) %>% 
-  gather(key = "measure", value = "value", -c("rm", "capital", "year")) %>% 
-  unite(col = "measure", ... = c("measure", "year"), remove = TRUE) %>% 
-  spread(measure, value)
-```
-
-```{r}
-df_br_stat_mar_may %>% 
-  ungroup() %>% 
-  select(rm:avg_2020, deviation_2019, deviation_2020,
-         coefficient_2019, coefficient_2020) %>% 
-  setNames(c("Metropolitan area", "Level", "2019", "2020",
-             "2019", "2020", "2019", "2020")) %>% 
-  kable() %>% 
-  kable_styling() %>% 
-  add_header_above(c(" " = 2, "Average" = 2, 
-                     "Standard deviation" = 2,
-                     "Coefficient of variation" = 2)) %>% 
-  save_kable(file = "./data/figures/br_stats_march_may.pdf")
 ```
 
 # Ecuador
