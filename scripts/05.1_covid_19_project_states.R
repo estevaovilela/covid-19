@@ -25,7 +25,7 @@ cookies <- curl::handle_cookies(h)
 # we need the "XRSF-TOKEN"
 token <- cookies$value[which(cookies$name == "XSRF-TOKEN")]
 # if this don't succed need to get it manually
-token <- "eyJpdiI6ImZNMXc3TDM5Z2JxQUl6NXVFWTFHOVE9PSIsInZhbHVlIjoiUk5wQU13blA1MUI0bW5BWTR0THVQUGpvWHBEYVpwMEpvN040SGlabEdsQ2pRRFZ4aGtYOG9Yb1R0S1F5dzZFbyIsIm1hYyI6ImZkNTg1MjRhYWRmMzZkMTE5MjI1NjI3ZDJhODBhMjQwNTg2OWFlODEyNDZhNmZmZjg5NjY2YWU1YTZhYzAwZmIifQ=="
+token <- "eyJpdiI6Im9icHBudXM3UEZZQUVKekV4a25xdXc9PSIsInZhbHVlIjoibGU2dHVsWjV4aTJlYUQweVwvTFFyRmthT3dLcVkyT2tmVWtLNHA5SDFhTTNxUzQxbG85YllhZW9NN1VqY1FOemkiLCJtYWMiOiIwOGJjMTJhMzBjNzgzNjI0YWI4OTdjNTNiMjY3NGY3YWY0OTIxNWZmYzJkYzZlODk3MTAwZjkwOTI5NTA5ZTEwIn0="
 # so, we need to iterate through only dates to get our data:
 # number of daily deaths by gender and age group (10 years) 
 # since the first death in Brazil
@@ -37,7 +37,7 @@ dates <- seq.Date(dmy("16/03/2020"), current_day, by = "day")
 headers <- c(
   `X-XSRF-TOKEN` = token,
   # dont know if it is a private info
-  `User-Agent` = # Your User-Agent
+  `User-Agent` = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36'
 )
 
 list_date <- list()
