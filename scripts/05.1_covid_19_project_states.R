@@ -25,7 +25,7 @@ cookies <- curl::handle_cookies(h)
 # we need the "XRSF-TOKEN"
 token <- cookies$value[which(cookies$name == "XSRF-TOKEN")]
 # if this don't succed need to get it manually
-token <- "eyJpdiI6Im9icHBudXM3UEZZQUVKekV4a25xdXc9PSIsInZhbHVlIjoibGU2dHVsWjV4aTJlYUQweVwvTFFyRmthT3dLcVkyT2tmVWtLNHA5SDFhTTNxUzQxbG85YllhZW9NN1VqY1FOemkiLCJtYWMiOiIwOGJjMTJhMzBjNzgzNjI0YWI4OTdjNTNiMjY3NGY3YWY0OTIxNWZmYzJkYzZlODk3MTAwZjkwOTI5NTA5ZTEwIn0="
+token <- "eyJpdiI6IkRlazNaY0ZLY0RrVERrdEx5MU5tc2c9PSIsInZhbHVlIjoib2tPdGJnY0s0MkJXTmUrSmIrOVdcL2hsK3FUZXNrdVczRVl3MUlSeUV2a1N5d0lwM1pneFd5V3NGUE15a0xzZnUiLCJtYWMiOiI2NTg5YWUwMTI5YWMwYTFhM2FjY2VkZjQzOWQ5ZmZkNmJkMGE4ZGM2Y2NkNDg5MDQyZjU5NGFkZDg0YTgzZGY5In0="
 # so, we need to iterate through only dates to get our data:
 # number of daily deaths by gender and age group (10 years) 
 # since the first death in Brazil
